@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       debug: {
         totalLines: ocrLines.length,
         processedNames: extractedNames.length,
-        cleanedText: ocrText
+        cleanedText: ocrLines.join('\n')
           .replace(/cricbuzz11/gi, '')
           .replace(/[^\w\s\n.-]/g, ' ')
           .replace(/\s+/g, ' ')

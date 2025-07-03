@@ -149,37 +149,38 @@ export default function StrategySelector({ players, onStrategySelected }: Strate
   const totalCaptainPercentage = Object.values(captainPercentages).reduce((sum, val) => sum + val, 0)
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
       <div className="text-center">
-        <h2 className="text-3xl font-bold text-gray-900 mb-4">Select Your Strategy</h2>
-        <p className="text-lg text-gray-600">
+        <h2 className="heading-primary mb-4 animate-slide-up">SELECT YOUR STRATEGY</h2>
+        <p className="text-lg text-gray-600 font-semibold animate-slide-up">
           Choose a preset strategy or customize your own approach
         </p>
       </div>
 
       {/* Preset Strategies */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {Object.entries(PRESET_STRATEGIES).map(([key, preset]) => (
+        {Object.entries(PRESET_STRATEGIES).map(([key, preset], index) => (
           <div
             key={key}
             onClick={() => handlePresetSelect(key)}
-            className={`card cursor-pointer transition-all duration-200 hover:shadow-lg ${
-              selectedPreset === key ? 'ring-2 ring-dream11-primary bg-blue-50' : ''
+            className={`strategy-card animate-scale-in ${
+              selectedPreset === key ? 'strategy-card-selected' : ''
             }`}
+            style={{ animationDelay: `${index * 0.1}s` }}
           >
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">{preset.name}</h3>
-            <p className="text-gray-600 mb-4">{preset.description}</p>
+            <h3 className="text-xl font-black text-dream11-dark mb-2 uppercase tracking-wide">{preset.name}</h3>
+            <p className="text-gray-600 mb-4 font-medium">{preset.description}</p>
             
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span>Uniqueness:</span>
-                <span className="font-medium">{Math.round(preset.uniquenessWeight * 100)}%</span>
+                <span className="font-bold">Uniqueness:</span>
+                <span className="font-black text-dream11-primary">{Math.round(preset.uniquenessWeight * 100)}%</span>
               </div>
               <div className="space-y-1">
                 {Object.entries(preset.roleConstraints).map(([role, constraint]) => (
                   <div key={role} className="flex justify-between text-xs">
-                    <span>{role}:</span>
-                    <span>{constraint.min}-{constraint.max}</span>
+                    <span className="font-bold">{role}:</span>
+                    <span className="font-semibold">{constraint.min}-{constraint.max}</span>
                   </div>
                 ))}
               </div>
@@ -189,46 +190,47 @@ export default function StrategySelector({ players, onStrategySelected }: Strate
       </div>
 
       {/* Custom Strategy Builder */}
-      <div className="card">
+      <div className="card-3d animate-scale-in">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-semibold text-gray-900">Customize Strategy</h3>
+          <h3 className="text-xl font-black text-dream11-dark uppercase tracking-wide">CUSTOMIZE STRATEGY</h3>
           <button
             onClick={() => setShowAdvanced(!showAdvanced)}
             className="btn-outline text-sm"
           >
             <Settings className="w-4 h-4 mr-2" />
-            {showAdvanced ? 'Hide Advanced' : 'Show Advanced'}
+            {showAdvanced ? 'HIDE ADVANCED' : 'SHOW ADVANCED'}
           </button>
         </div>
 
         {/* Player Selection */}
         <div className="mb-6">
-          <h4 className="text-lg font-medium text-gray-900 mb-4">Player Selection</h4>
+          <h4 className="text-lg font-black text-dream11-dark mb-4 uppercase tracking-wide">PLAYER SELECTION</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
-            {players.map(player => (
+            {players.map((player, index) => (
               <div
                 key={player.id}
-                className={`p-3 border rounded-lg transition-colors ${
+                className={`player-card-3d animate-scale-in ${
                   customStrategy.lockedPlayers.includes(player.id)
-                    ? 'border-green-500 bg-green-50'
+                    ? 'border-dream11-accent bg-green-50'
                     : customStrategy.excludedPlayers.includes(player.id)
-                    ? 'border-red-500 bg-red-50'
+                    ? 'border-dream11-primary bg-red-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
+                style={{ animationDelay: `${index * 0.05}s` }}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <p className="font-medium text-sm">{player.name}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="font-black text-sm text-dream11-dark">{player.name}</p>
+                    <p className="text-xs text-gray-600 font-semibold">
                       {player.role} • {player.credits}cr • {player.team === 'team1' ? 'T1' : 'T2'}
                     </p>
                   </div>
                   <div className="flex space-x-1">
                     <button
                       onClick={() => handlePlayerLock(player.id)}
-                      className={`p-1 rounded ${
+                      className={`p-1 rounded transition-all duration-200 hover:scale-110 ${
                         customStrategy.lockedPlayers.includes(player.id)
-                          ? 'bg-green-500 text-white'
+                          ? 'bg-dream11-accent text-white animate-glow'
                           : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                       }`}
                       title="Lock player"
@@ -237,9 +239,9 @@ export default function StrategySelector({ players, onStrategySelected }: Strate
                     </button>
                     <button
                       onClick={() => handlePlayerExclude(player.id)}
-                      className={`p-1 rounded ${
+                      className={`p-1 rounded transition-all duration-200 hover:scale-110 ${
                         customStrategy.excludedPlayers.includes(player.id)
-                          ? 'bg-red-500 text-white'
+                          ? 'bg-dream11-primary text-white animate-glow'
                           : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                       }`}
                       title="Exclude player"
@@ -255,9 +257,9 @@ export default function StrategySelector({ players, onStrategySelected }: Strate
 
         {/* Captain Distribution */}
         <div className="mb-6">
-          <h4 className="text-lg font-medium text-gray-900 mb-4">
-            Captain Distribution
-            <span className={`ml-2 text-sm ${totalCaptainPercentage === 100 ? 'text-green-600' : 'text-red-600'}`}>
+          <h4 className="text-lg font-black text-dream11-dark mb-4 uppercase tracking-wide">
+            CAPTAIN DISTRIBUTION
+            <span className={`ml-2 text-sm font-bold ${totalCaptainPercentage === 100 ? 'text-dream11-accent' : 'text-dream11-primary'}`}>
               ({totalCaptainPercentage}%)
             </span>
           </h4>
@@ -266,11 +268,11 @@ export default function StrategySelector({ players, onStrategySelected }: Strate
               .filter(p => p.credits >= 8)
               .sort((a, b) => b.credits - a.credits)
               .slice(0, 8)
-              .map(player => (
-                <div key={player.id} className="flex items-center space-x-4">
+              .map((player, index) => (
+                <div key={player.id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200 animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
                   <div className="flex-1">
-                    <span className="font-medium">{player.name}</span>
-                    <span className="ml-2 text-sm text-gray-500">({player.credits}cr)</span>
+                    <span className="font-black text-dream11-dark">{player.name}</span>
+                    <span className="ml-2 text-sm text-gray-600 font-semibold">({player.credits}cr)</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <input
@@ -279,9 +281,9 @@ export default function StrategySelector({ players, onStrategySelected }: Strate
                       max="100"
                       value={captainPercentages[player.id] || 0}
                       onChange={(e) => handleCaptainPercentageChange(player.id, parseInt(e.target.value) || 0)}
-                      className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                      className="w-16 px-2 py-1 border-2 border-gray-300 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-dream11-primary focus:border-dream11-primary transition-all duration-200"
                     />
-                    <span className="text-sm text-gray-500">%</span>
+                    <span className="text-sm text-gray-600 font-bold">%</span>
                   </div>
                 </div>
               ))}

@@ -1,144 +1,162 @@
 'use client'
 
-import { useState } from 'react'
-import { Upload, Users, Settings, Download } from 'lucide-react'
-import OCRProcessor from '@/components/OCRProcessor'
-import StrategySelector from '@/components/StrategySelector'
-import TeamGenerator from '@/components/TeamGenerator'
-import TeamManager from '@/components/TeamManager'
-import { Player, Team, Strategy } from '@/types'
+import { useState, useEffect } from 'react'
+import { Trophy } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import MatchCard from '@/components/MatchCard'
+
+interface Match {
+  id: number
+  team1: string
+  team2: string
+  format: string
+  venue: string
+  matchDate: string
+  isActive: boolean
+}
 
 export default function HomePage() {
-  const [players, setPlayers] = useState<Player[]>([])
-  const [teams, setTeams] = useState<Team[]>([])
-  const [strategy, setStrategy] = useState<Strategy | null>(null)
-  const [currentStep, setCurrentStep] = useState<'upload' | 'strategy' | 'generate' | 'manage'>('upload')
+  const [matches, setMatches] = useState<Match[]>([])
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
-  const handlePlayersExtracted = (extractedPlayers: Player[]) => {
-    setPlayers(extractedPlayers)
-    setCurrentStep('strategy')
+  useEffect(() => {
+    loadMatches()
+  }, [])
+
+  const loadMatches = async () => {
+    try {
+      const response = await fetch('/api/matches')
+      if (!response.ok) {
+        throw new Error('Failed to fetch matches')
+      }
+      const data = await response.json()
+      setMatches(data.matches || [])
+    } catch (error) {
+      console.error('Failed to load matches:', error)
+      // Fallback to mock data if API fails
+      const mockMatches: Match[] = [
+        {
+          id: 1,
+          team1: 'WI',
+          team2: 'AUS',
+          format: 'T20',
+          venue: 'Kensington Oval, Barbados',
+          matchDate: '2025-07-04T14:30:00Z',
+          isActive: true
+        },
+        {
+          id: 2,
+          team1: 'IND',
+          team2: 'ENG',
+          format: 'ODI',
+          venue: 'Lord\'s, London',
+          matchDate: '2025-07-05T10:30:00Z',
+          isActive: true
+        },
+        {
+          id: 3,
+          team1: 'PAK',
+          team2: 'SA',
+          format: 'T20',
+          venue: 'Gaddafi Stadium, Lahore',
+          matchDate: '2025-07-06T19:00:00Z',
+          isActive: true
+        },
+        {
+          id: 4,
+          team1: 'NZ',
+          team2: 'SL',
+          format: 'ODI',
+          venue: 'Eden Park, Auckland',
+          matchDate: '2025-07-07T02:30:00Z',
+          isActive: true
+        },
+        {
+          id: 5,
+          team1: 'BAN',
+          team2: 'AFG',
+          format: 'T20',
+          venue: 'Shere Bangla National Stadium, Dhaka',
+          matchDate: '2025-07-08T08:00:00Z',
+          isActive: true
+        }
+      ]
+      setMatches(mockMatches)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleStrategySelected = (selectedStrategy: Strategy) => {
-    setStrategy(selectedStrategy)
-    setCurrentStep('generate')
+  const handleCreateTeams = (matchId: number) => {
+    router.push(`/select/${matchId}`)
   }
 
-  const handleTeamsGenerated = (generatedTeams: Team[]) => {
-    setTeams(generatedTeams)
-    setCurrentStep('manage')
-  }
-
-  const stepInfo = {
-    upload: { title: 'Upload Screenshot', icon: Upload, description: 'Upload Dream11 screenshot or enter player data' },
-    strategy: { title: 'Select Strategy', icon: Settings, description: 'Choose team creation strategy and preferences' },
-    generate: { title: 'Generate Teams', icon: Users, description: 'Create optimized fantasy teams' },
-    manage: { title: 'Manage Teams', icon: Download, description: 'Review, edit, and export your teams' }
-  }
-
-  const renderStepIndicator = () => {
-    const steps = ['upload', 'strategy', 'generate', 'manage'] as const
-    const currentIndex = steps.indexOf(currentStep)
-    
+  if (loading) {
     return (
-      <div className="flex items-center justify-center mb-8">
-        {steps.map((step, index) => {
-          const StepIcon = stepInfo[step].icon
-          const isActive = index === currentIndex
-          const isCompleted = index < currentIndex
-          
-          return (
-            <div key={step} className="flex items-center">
-              <div className={`flex items-center justify-center w-12 h-12 rounded-full border-2 ${
-                isActive ? 'border-blue-500 bg-blue-500 text-white' :
-                isCompleted ? 'border-green-500 bg-green-500 text-white' :
-                'border-gray-300 bg-gray-100 text-gray-400'
-              }`}>
-                <StepIcon className="w-6 h-6" />
-              </div>
-              {index < steps.length - 1 && (
-                <div className={`w-16 h-1 mx-2 ${
-                  isCompleted ? 'bg-green-500' : 'bg-gray-300'
-                }`} />
-              )}
-            </div>
-          )
-        })}
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white text-xl">Loading matches...</div>
       </div>
     )
   }
 
-  const renderStep = () => {
-    switch (currentStep) {
-      case 'upload':
-        return <OCRProcessor onPlayersExtracted={handlePlayersExtracted} />
-      case 'strategy':
-        return (
-          <StrategySelector
-            players={players}
-            onStrategySelected={handleStrategySelected}
-          />
-        )
-      case 'generate':
-        return (
-          <TeamGenerator
-            players={players}
-            strategy={strategy!}
-            onTeamsGenerated={handleTeamsGenerated}
-          />
-        )
-      case 'manage':
-        return (
-          <TeamManager
-            teams={teams}
-            players={players}
-            onTeamsUpdate={setTeams}
-          />
-        )
-      default:
-        return null
-    }
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <h1 className="text-2xl font-bold text-dream11-primary">
-              Dream11 Multi Team Creator
-            </h1>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-500">
-                {teams.length} teams generated
-              </span>
+      <header className="navbar-dream11 py-8">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex items-center space-x-4">
+            <Trophy className="w-10 h-10 text-dream11-primary" />
+            <div>
+              <h1 className="heading-primary text-white">DREAM11 MULTI TEAM CREATOR</h1>
+              <p className="text-gray-300 mt-1 font-semibold">Create multiple winning teams for your fantasy cricket matches</p>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Progress Steps */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {renderStepIndicator()}
+      {/* Hero Section */}
+      <section className="hero-dream11 py-20 relative">
+        <div className="hero-grid"></div>
+        <div className="hero-content max-w-7xl mx-auto px-6 relative z-10">
           <div className="text-center">
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              {stepInfo[currentStep].title}
+            <h2 className="hero-title">
+              DOMINATE YOUR <span className="text-dream11-primary">FANTASY LEAGUE</span>
             </h2>
-            <p className="text-gray-600">{stepInfo[currentStep].description}</p>
-            {players.length > 0 && (
-              <p className="text-sm text-green-600 mt-2">
-                {players.length} players loaded
-              </p>
-            )}
+            <p className="hero-subtitle">
+              Advanced multi-team creation system with intelligent player selection and strategic team building
+            </p>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {renderStep()}
+      <main className="section-sport">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-12 text-center">
+            <h2 className="heading-secondary mb-4">LIVE MATCHES</h2>
+            <p className="text-gray-600 text-lg font-medium">Select a match to create your fantasy teams</p>
+          </div>
+
+          {/* Matches Grid */}
+          <div className="grid-sport grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {matches.map((match, index) => (
+              <div key={match.id} className="animate-scale-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                <MatchCard
+                  match={match}
+                  onCreateTeams={handleCreateTeams}
+                />
+              </div>
+            ))}
+          </div>
+
+          {matches.length === 0 && (
+            <div className="text-center py-16">
+              <div className="text-gray-600 mb-4 text-lg font-semibold">No matches available</div>
+              <p className="text-gray-500 font-medium">Check back later for upcoming matches</p>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   )

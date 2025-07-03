@@ -2,34 +2,424 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
 @layer base {
   html {
     @apply scroll-smooth;
   }
   
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-white text-gray-900 font-sans;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    perspective: 1000px;
+  }
+
+  /* Dream11 Typography */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
+  }
+
+  .heading-primary {
+    @apply text-3xl font-black uppercase tracking-wide text-dream11-dark;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .heading-secondary {
+    @apply text-2xl font-bold uppercase tracking-wide text-dream11-dark;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .heading-accent {
+    @apply text-dream11-primary font-black uppercase;
+    text-shadow: 0 2px 4px rgba(229, 28, 35, 0.3);
+  }
+
+  .text-sport {
+    @apply font-semibold text-dream11-dark;
+  }
+
+  /* 3D Animation utilities */
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.6s ease-out forwards;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.8s ease-out forwards;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.5s ease-out forwards;
+  }
+
+  .animate-rotate-3d {
+    animation: rotate3d 2s linear infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+
+  @keyframes glow {
+    0% { box-shadow: 0 0 5px rgba(229, 28, 35, 0.5); }
+    100% { box-shadow: 0 0 20px rgba(229, 28, 35, 0.8), 0 0 30px rgba(229, 28, 35, 0.4); }
+  }
+
+  @keyframes slideUp {
+    0% { transform: translateY(30px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+
+  @keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+
+  @keyframes scaleIn {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  @keyframes rotate3d {
+    0% { transform: rotateY(0deg); }
+    100% { transform: rotateY(360deg); }
   }
 }
 
 @layer components {
+  /* Dream11 Button Styles */
   .btn-primary {
-    @apply bg-dream11-primary hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+    @apply bg-dream11-primary hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 uppercase tracking-wide;
+    box-shadow: 0 4px 15px rgba(229, 28, 35, 0.3);
+    border: none;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s;
+  }
+
+  .btn-primary:hover::before {
+    left: 100%;
+  }
+
+  .btn-primary:hover {
+    box-shadow: 0 8px 25px rgba(229, 28, 35, 0.5);
+    transform: translateY(-2px) scale(1.05);
   }
   
   .btn-secondary {
-    @apply bg-dream11-secondary hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+    @apply bg-dream11-secondary hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 uppercase tracking-wide;
+    box-shadow: 0 4px 15px rgba(26, 26, 26, 0.3);
+  }
+
+  .btn-secondary:hover {
+    box-shadow: 0 8px 25px rgba(26, 26, 26, 0.5);
+    transform: translateY(-2px) scale(1.05);
   }
   
   .btn-outline {
-    @apply border border-dream11-primary text-dream11-primary hover:bg-dream11-primary hover:text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+    @apply border-2 border-dream11-primary text-dream11-primary hover:bg-dream11-primary hover:text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 uppercase tracking-wide;
+    box-shadow: 0 4px 15px rgba(229, 28, 35, 0.2);
   }
-  
+
+  .btn-outline:hover {
+    box-shadow: 0 8px 25px rgba(229, 28, 35, 0.4);
+    transform: translateY(-2px) scale(1.05);
+  }
+
+  /* Dream11 Card Styles */
   .card {
-    @apply bg-white rounded-lg shadow-md p-6 border border-gray-200;
+    @apply bg-white rounded-xl shadow-lg border border-gray-200 transition-all duration-300 hover:shadow-xl;
+    transform: translateZ(0);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   }
-  
+
+  .card:hover {
+    transform: translateY(-5px) rotateX(5deg);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  }
+
+  .card-sport {
+    @apply bg-white rounded-xl shadow-lg border-l-4 border-l-dream11-primary p-6;
+    transform: translateZ(0);
+    box-shadow: 0 10px 30px rgba(229, 28, 35, 0.1);
+  }
+
+  .card-sport:hover {
+    transform: translateY(-5px) rotateX(5deg);
+    box-shadow: 0 20px 40px rgba(229, 28, 35, 0.2);
+  }
+
+  .card-3d {
+    @apply bg-white rounded-xl shadow-lg border border-gray-200 p-6 transition-all duration-300;
+    transform-style: preserve-3d;
+    perspective: 1000px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-3d:hover {
+    transform: translateY(-10px) rotateX(10deg) rotateY(5deg);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Dream11 Input Styles */
   .input-field {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-dream11-primary focus:border-transparent;
+    @apply w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-dream11-primary focus:border-dream11-primary transition-all duration-200 font-medium;
   }
+
+  /* Dream11 Header/Navbar */
+  .navbar-dream11 {
+    @apply bg-black text-white shadow-lg;
+  }
+
+  .navbar-link {
+    @apply text-white hover:text-dream11-primary transition-colors duration-200 font-semibold uppercase tracking-wide;
+  }
+
+  /* Dream11 Hero Section */
+  .hero-dream11 {
+    @apply bg-gradient-to-r from-black via-gray-900 to-black text-white relative overflow-hidden;
+    min-height: 60vh;
+  }
+
+  .hero-grid {
+    @apply absolute inset-0 opacity-10;
+    background-image: 
+      linear-gradient(rgba(229, 28, 35, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(229, 28, 35, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+    animation: float 4s ease-in-out infinite;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 10;
+    transform: translateZ(0);
+  }
+
+  .hero-title {
+    @apply text-5xl font-black text-white mb-4 uppercase tracking-wide;
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.8s ease-out forwards;
+  }
+
+  .hero-subtitle {
+    @apply text-xl text-gray-300 font-semibold max-w-3xl mx-auto;
+    animation: slideUp 0.8s ease-out 0.2s forwards;
+    opacity: 0;
+  }
+
+  /* Dream11 Text Highlights */
+  .text-highlight {
+    @apply text-dream11-primary font-bold;
+  }
+
+  .text-sport-accent {
+    @apply text-dream11-primary font-black uppercase tracking-wider;
+  }
+
+  /* Dream11 Sections */
+  .section-sport {
+    @apply py-16 px-8 bg-white;
+  }
+
+  .section-dark {
+    @apply py-16 px-8 bg-black text-white;
+  }
+
+  /* Dream11 Grid Layout */
+  .grid-sport {
+    @apply grid gap-8 max-w-7xl mx-auto;
+  }
+
+  /* Dream11 Badges */
+  .badge-active {
+    @apply px-3 py-1 bg-dream11-accent text-white text-xs font-bold rounded-full uppercase tracking-wide;
+  }
+
+  .badge-inactive {
+    @apply px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full uppercase tracking-wide;
+  }
+
+  /* Dream11 Match Cards */
+  .match-card {
+    @apply bg-white rounded-xl shadow-lg border border-gray-200 hover:shadow-xl hover:border-dream11-primary transition-all duration-300;
+    transform: translateZ(0);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  }
+
+  .match-card:hover {
+    transform: translateY(-8px) rotateX(5deg);
+    box-shadow: 0 20px 40px rgba(229, 28, 35, 0.2);
+  }
+
+  .team-indicator {
+    @apply w-4 h-4 rounded-full;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Dream11 Player Cards */
+  .player-card {
+    @apply bg-white rounded-lg border-2 border-gray-200 hover:border-dream11-primary transition-all duration-300;
+    transform: translateZ(0);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  }
+
+  .player-card:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(229, 28, 35, 0.15);
+  }
+
+  .player-card-selected {
+    @apply border-dream11-primary bg-red-50;
+    box-shadow: 0 8px 25px rgba(229, 28, 35, 0.3);
+    transform: translateY(-2px);
+  }
+
+  .player-card-inactive {
+    @apply opacity-60 cursor-not-allowed border-gray-300 bg-gray-50;
+    filter: grayscale(0.3);
+  }
+
+  .player-card-3d {
+    @apply bg-white rounded-lg border-2 border-gray-200 p-4 transition-all duration-300;
+    transform-style: preserve-3d;
+    perspective: 1000px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  .player-card-3d:hover {
+    transform: translateY(-5px) rotateX(10deg) rotateY(5deg);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Dream11 Stats */
+  .stat-card {
+    @apply rounded-lg p-4 text-center transition-all duration-300;
+    transform: translateZ(0);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  }
+
+  .stat-card:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+
+  .stat-value {
+    @apply text-2xl font-black;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .stat-label {
+    @apply text-sm font-bold uppercase tracking-wide;
+  }
+
+  /* Professional Loading Animation */
+  .loading-spinner {
+    @apply w-8 h-8 border-4 border-gray-200 border-t-dream11-primary rounded-full;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  /* Strategy Selection Cards */
+  .strategy-card {
+    @apply bg-white rounded-xl shadow-lg border border-gray-200 p-6 cursor-pointer transition-all duration-300;
+    transform: translateZ(0);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  }
+
+  .strategy-card:hover {
+    transform: translateY(-8px) rotateX(5deg);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  }
+
+  .strategy-card-selected {
+    @apply ring-2 ring-dream11-primary bg-red-50;
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(229, 28, 35, 0.2);
+  }
+
+  .strategy-card-selected:hover {
+    transform: translateY(-10px) rotateX(5deg);
+    box-shadow: 0 25px 50px rgba(229, 28, 35, 0.3);
+  }
+
+  /* Team Generation Cards */
+  .team-gen-card {
+    @apply bg-white rounded-xl shadow-lg border border-gray-200 p-8 transition-all duration-300;
+    transform: translateZ(0);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+  }
+
+  .team-gen-card:hover {
+    transform: translateY(-10px) rotateX(10deg);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Progress Bar */
+  .progress-bar {
+    @apply bg-gray-200 rounded-full h-3 overflow-hidden;
+    position: relative;
+  }
+
+  .progress-fill {
+    @apply bg-gradient-to-r from-dream11-primary to-red-600 h-full rounded-full transition-all duration-300;
+    box-shadow: 0 0 10px rgba(229, 28, 35, 0.5);
+  }
+
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+}
+
+/* Custom scrollbar for Dream11 theme */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #E51C23;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #c41e3a;
 }

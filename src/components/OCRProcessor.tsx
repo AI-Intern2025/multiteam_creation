@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, Camera, Loader2, CheckCircle, AlertCircle, Edit, Database } from 'lucide-react'
 import { createWorker } from 'tesseract.js'
-import { Player, OCRResult } from '@/types'
+import { Player, OCRResult } from '../types'
 import { parsePlayerData, parseManualPlayerData, extractPlayerNamesOnly } from '@/utils/metadata-parser'
 
 interface OCRProcessorProps {

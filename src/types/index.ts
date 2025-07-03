@@ -66,16 +66,6 @@ export interface GenerationConfig {
   maxIterations: number
 }
 
-export interface OCRResult {
-  players: Player[]
-  matchInfo: {
-    team1: string
-    team2: string
-    format: string
-  }
-  confidence: number
-}
-
 export interface TeamExport {
   teamName: string
   players: {
