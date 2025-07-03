@@ -204,8 +204,81 @@ export default function StrategySelector({ players, onStrategySelected }: Strate
         {/* Player Selection */}
         <div className="mb-6">
           <h4 className="text-lg font-medium text-gray-900 mb-4">Player Selection</h4>
+          
+          {/* Selected Players Display */}
+          {(customStrategy.lockedPlayers.length > 0 || customStrategy.excludedPlayers.length > 0) && (
+            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+              {customStrategy.lockedPlayers.length > 0 && (
+                <div className="mb-3">
+                  <p className="text-sm font-medium text-green-700 mb-2">Locked Players:</p>
+                  <div className="space-y-1">
+                    {customStrategy.lockedPlayers.map(playerId => {
+                      const player = players.find(p => p.id === playerId)
+                      return player ? (
+                        <div key={playerId} className="flex items-center justify-between bg-green-100 p-2 rounded">
+                          <div className="flex items-center space-x-2">
+                            <Lock size={14} className="text-green-600" />
+                            <span className="font-medium text-sm">{player.name}</span>
+                            <span className="text-xs text-gray-600">
+                              {player.role} • {player.credits}cr • {player.team === 'team1' ? 'T1' : 'T2'}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handlePlayerLock(playerId)}
+                            className="p-1 text-green-600 hover:text-green-800"
+                            title="Remove lock"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : null
+                    })}
+                  </div>
+                </div>
+              )}
+              
+              {customStrategy.excludedPlayers.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-red-700 mb-2">Excluded Players:</p>
+                  <div className="space-y-1">
+                    {customStrategy.excludedPlayers.map(playerId => {
+                      const player = players.find(p => p.id === playerId)
+                      return player ? (
+                        <div key={playerId} className="flex items-center justify-between bg-red-100 p-2 rounded">
+                          <div className="flex items-center space-x-2">
+                            <X size={14} className="text-red-600" />
+                            <span className="font-medium text-sm">{player.name}</span>
+                            <span className="text-xs text-gray-600">
+                              {player.role} • {player.credits}cr • {player.team === 'team1' ? 'T1' : 'T2'}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handlePlayerExclude(playerId)}
+                            className="p-1 text-red-600 hover:text-red-800"
+                            title="Remove exclusion"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : null
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* All Players for Selection */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
-            {players.map(player => (
+            {players
+              .sort((a, b) => {
+                const roleOrder = { 'WK': 0, 'BAT': 1, 'AR': 2, 'BOWL': 3 }
+                const aOrder = roleOrder[a.role as keyof typeof roleOrder] ?? 4
+                const bOrder = roleOrder[b.role as keyof typeof roleOrder] ?? 4
+                if (aOrder !== bOrder) return aOrder - bOrder
+                return b.credits - a.credits // Secondary sort by credits (high to low)
+              })
+              .map(player => (
               <div
                 key={player.id}
                 className={`p-3 border rounded-lg transition-colors ${
@@ -261,16 +334,60 @@ export default function StrategySelector({ players, onStrategySelected }: Strate
               ({totalCaptainPercentage}%)
             </span>
           </h4>
+          
+          {/* Selected Captains Display */}
+          {Object.entries(captainPercentages).filter(([_, percentage]) => percentage > 0).length > 0 && (
+            <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm font-medium text-blue-700 mb-2">Selected Captains:</p>
+              <div className="space-y-2">
+                {Object.entries(captainPercentages)
+                  .filter(([_, percentage]) => percentage > 0)
+                  .map(([playerId, percentage]) => {
+                    const player = players.find(p => p.id === playerId)
+                    return player ? (
+                      <div key={playerId} className="flex items-center justify-between bg-blue-100 p-2 rounded">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium text-sm">{player.name}</span>
+                          <span className="text-xs text-gray-600">
+                            {player.role} • {player.credits}cr • {player.team === 'team1' ? 'T1' : 'T2'}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-medium text-blue-700">{percentage}%</span>
+                          <button
+                            onClick={() => handleCaptainPercentageChange(playerId, 0)}
+                            className="p-1 text-blue-600 hover:text-blue-800"
+                            title="Remove as captain"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ) : null
+                  })}
+              </div>
+            </div>
+          )}
+          
+          {/* All Available Captains */}
           <div className="space-y-3">
             {players
               .filter(p => p.credits >= 8)
-              .sort((a, b) => b.credits - a.credits)
+              .sort((a, b) => {
+                const roleOrder = { 'WK': 0, 'BAT': 1, 'AR': 2, 'BOWL': 3 }
+                const aOrder = roleOrder[a.role as keyof typeof roleOrder] ?? 4
+                const bOrder = roleOrder[b.role as keyof typeof roleOrder] ?? 4
+                if (aOrder !== bOrder) return aOrder - bOrder
+                return b.credits - a.credits // Secondary sort by credits (high to low)
+              })
               .slice(0, 8)
               .map(player => (
-                <div key={player.id} className="flex items-center space-x-4">
+                <div key={player.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
                   <div className="flex-1">
                     <span className="font-medium">{player.name}</span>
-                    <span className="ml-2 text-sm text-gray-500">({player.credits}cr)</span>
+                    <span className="ml-2 text-sm text-gray-500">
+                      {player.role} • {player.credits}cr • {player.team === 'team1' ? 'T1' : 'T2'}
+                    </span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <input
@@ -280,6 +397,7 @@ export default function StrategySelector({ players, onStrategySelected }: Strate
                       value={captainPercentages[player.id] || 0}
                       onChange={(e) => handleCaptainPercentageChange(player.id, parseInt(e.target.value) || 0)}
                       className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                      placeholder="0"
                     />
                     <span className="text-sm text-gray-500">%</span>
                   </div>

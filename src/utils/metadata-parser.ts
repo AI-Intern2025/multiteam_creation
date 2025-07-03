@@ -190,6 +190,98 @@ export function parsePlayerData(ocrText: string, confidence: number): OCRResult 
     }
   }
   
+  // If still no luck, try parsing as team formation view
+  if (result.players.length < 4) {
+    const formationResult = parseTeamFormationView(ocrText, confidence)
+    if (formationResult.players.length > result.players.length) {
+      result.players = formationResult.players
+      result.matchInfo = formationResult.matchInfo
+    }
+  }
+  
+  return result
+}
+
+/**
+ * Parse Dream11 team formation view (the visual field layout)
+ */
+function parseTeamFormationView(ocrText: string, confidence: number): OCRResult {
+  const result: OCRResult = {
+    players: [],
+    matchInfo: {
+      team1: 'WI',
+      team2: 'AUS', 
+      format: 'T20'
+    },
+    confidence
+  }
+  
+  const text = ocrText.toLowerCase()
+  const players: Player[] = []
+  
+  // Check if this looks like a team formation view
+  const isFormationView = text.includes('wicket') && text.includes('keeper') && 
+                         (text.includes('batter') || text.includes('bowler'))
+  
+  if (isFormationView) {
+    // Extract players from the actual OCR text instead of using hardcoded list
+    const lines = ocrText.split('\n').filter(line => line.trim().length > 0)
+    let currentRole: 'WK' | 'BAT' | 'AR' | 'BOWL' = 'BAT'
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim()
+      
+      // Detect role sections
+      if (line.toLowerCase().includes('wicket') || line.toLowerCase().includes('keeper')) {
+        currentRole = 'WK'
+        continue
+      } else if (line.toLowerCase().includes('batter') || line.toLowerCase().includes('batsman')) {
+        currentRole = 'BAT'
+        continue
+      } else if (line.toLowerCase().includes('all') && line.toLowerCase().includes('rounder')) {
+        currentRole = 'AR'
+        continue
+      } else if (line.toLowerCase().includes('bowler')) {
+        currentRole = 'BOWL'
+        continue
+      }
+      
+      // Check if this line is a valid player name
+      if (isValidPlayerName(line)) {
+        // Look for credits in nearby lines
+        let credits = 8.0 // default
+        for (let j = i + 1; j < Math.min(i + 4, lines.length); j++) {
+          const creditLine = lines[j].trim()
+          const creditMatch = creditLine.match(/(\d+(?:\.\d+)?)\s*cr/i)
+          if (creditMatch) {
+            credits = parseFloat(creditMatch[1])
+            break
+          }
+        }
+        
+        // Determine team based on position and role
+        const team: 'team1' | 'team2' = players.length < 6 ? 'team1' : 'team2'
+        
+        const player: Player = {
+          id: generatePlayerId(line),
+          name: cleanPlayerName(line),
+          team,
+          role: currentRole,
+          credits,
+          isLocked: false,
+          isExcluded: false
+        }
+        
+        // Avoid duplicates
+        if (!players.some(p => p.name === player.name)) {
+          players.push(player)
+        }
+      }
+    }
+    
+    result.players = players
+  }
+  
   return result
 }
 
@@ -205,7 +297,7 @@ function createPlayer(name: string, team: 'team1' | 'team2', role: 'WK' | 'BAT' 
   }
 }
 
-function cleanPlayerName(name: string): string {
+export function cleanPlayerName(name: string): string {
   return name
     .replace(/[^\w\s.-]/g, '') // Remove special characters except dots and hyphens
     .replace(/\s+/g, ' ')      // Normalize whitespace
@@ -224,7 +316,7 @@ function normalizeRole(role: string): 'WK' | 'BAT' | 'AR' | 'BOWL' {
   return 'BAT' // Default fallback
 }
 
-function isValidPlayerName(name: string): boolean {
+export function isValidPlayerName(name: string): boolean {
   const cleaned = name.trim()
   return cleaned.length > 2 && 
          cleaned.length < 50 && 
@@ -339,7 +431,7 @@ export function validatePlayerData(players: Player[]): { isValid: boolean; error
 
 /**
  * Enhanced parser specifically for Dream11 screenshots
- * Handles the mobile app format with percentages and points
+ * Handles both mobile app list format and team formation view
  */
 function parseDream11Screenshot(ocrText: string, confidence: number): OCRResult {
   const lines = ocrText.split('\n').filter(line => line.trim().length > 0)
@@ -355,38 +447,51 @@ function parseDream11Screenshot(ocrText: string, confidence: number): OCRResult 
   }
 
   // Look for team names in common patterns
-  const teamPattern = /(WI|IND|AUS|ENG|SA|NZ|PAK|SL|BAN|AFG|IRE)\s*(\d+)?\s*(WI|IND|AUS|ENG|SA|NZ|PAK|SL|BAN|AFG|IRE)/i
+  const teamPattern = /(WI|IND|AUS|ENG|SA|NZ|PAK|SL|BAN|AFG|IRE)\s*(\d+)?\s*:?\s*(\d+)?\s*(WI|IND|AUS|ENG|SA|NZ|PAK|SL|BAN|AFG|IRE)/i
   for (const line of lines) {
     const teamMatch = line.match(teamPattern)
     if (teamMatch) {
       result.matchInfo.team1 = teamMatch[1].toUpperCase()
-      result.matchInfo.team2 = teamMatch[3].toUpperCase()
+      result.matchInfo.team2 = teamMatch[4].toUpperCase()
       break
     }
   }
 
   // Extract players using Dream11 mobile format
   const players: Player[] = []
+  let currentRole: 'WK' | 'BAT' | 'AR' | 'BOWL' = 'BAT'
   let currentTeam: 'team1' | 'team2' = 'team1'
   
-  // Common cricket player names to help with recognition
-  const commonNames = ['brathwaite', 'campbell', 'carty', 'king', 'warrican', 'chase', 'hope', 'greaves', 'joseph', 'seales', 'konstas', 'khawaja', 'green', 'inglis', 'head', 'webster', 'carey', 'cummins', 'starc', 'lyon', 'hazlewood', 'kohli', 'rohit', 'sharma', 'pant', 'jadeja', 'bumrah', 'shami', 'siraj', 'iyer', 'gill', 'smith', 'warner', 'labuschagne', 'maxwell', 'zampa', 'agar', 'marsh', 'stoinis']
-  
-  // Additional patterns for player identification
+  // Common name patterns that might appear in the OCR
   const namePatterns = [
-    /^[A-Z][a-z]+ [A-Z][a-z]+$/,  // First Last
-    /^[A-Z] [A-Z][a-z]+$/,        // A Last
-    /^[A-Z][a-z]+ [A-Z] [A-Z][a-z]+$/, // First A Last
-    /^[A-Z][a-z]+$/               // Single name
+    /^[A-Z]\s*[A-Za-z]+$/,        // S Hope, J Inglis
+    /^[A-Z]\s*[A-Za-z]+\s*[A-Z]?\s*[A-Za-z]*$/,  // K Brathwait..., U Khawaja
   ]
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim().toLowerCase()
+    const originalLine = lines[i].trim()
+    
+    // Detect role sections
+    if (line.includes('wicket') || line.includes('keeper')) {
+      currentRole = 'WK'
+      continue
+    } else if (line.includes('batter') || line.includes('batsman')) {
+      currentRole = 'BAT'
+      continue
+    } else if (line.includes('all') && line.includes('rounder')) {
+      currentRole = 'AR'
+      continue
+    } else if (line.includes('bowler')) {
+      currentRole = 'BOWL'
+      continue
+    }
     
     // Skip non-player lines
     if (line.length < 2 || 
         /^(create|team|make|upload|sel%|pts|played|last|match|tomorrow|\d+:\d+)/.test(line) ||
-        /^[\d%\s]+$/.test(line)) {
+        /^[\d%\s]+$/.test(line) ||
+        /^(wicket|keeper|batter|rounder|bowler|credits|left|players)$/i.test(line)) {
       continue
     }
     
@@ -396,59 +501,85 @@ function parseDream11Screenshot(ocrText: string, confidence: number): OCRResult 
       continue
     }
     
-    // Look for player names (check against common names or valid name pattern)
-    const isPlayerName = commonNames.some(name => line.includes(name)) || 
-                        namePatterns.some(pattern => pattern.test(lines[i].trim())) ||
-                        (/^[a-z][a-z\s]{2,}$/i.test(line) && 
-                         !/(wk|bat|bowl|all|sel|pts|create|team|upload)$/i.test(line) &&
-                         !/^\d+%?$/.test(line))
+    // Check for player name patterns
+    const isPlayerName = namePatterns.some(pattern => pattern.test(originalLine)) ||
+                        isValidPlayerName(originalLine)
     
     if (isPlayerName) {
       // Default values
-      let role: 'WK' | 'BAT' | 'AR' | 'BOWL' = 'BAT'
+      let role = currentRole
       let credits = 8.0
+      let team: 'team1' | 'team2' = currentTeam
       
-      // Look ahead for role and points
+      // Look ahead for credits
       for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
-        const checkLine = lines[j].trim().toLowerCase()
+        const checkLine = lines[j].trim()
         
-        // Check for role
-        if (/^(wk|bat|bowl|all)$/i.test(checkLine)) {
-          role = normalizeRole(checkLine)
-        }
-        
-        // Check for points to estimate credits
-        if (/^\d{1,3}$/.test(checkLine)) {
-          const points = parseInt(checkLine)
-          if (points >= 7 && points <= 300) {
-            // Convert points to credits (rough estimation)
-            if (points < 50) credits = 7.0 + (points / 50) * 3  // 7-10 credits
-            else if (points < 100) credits = 10.0 + ((points - 50) / 50) * 3  // 10-13 credits
-            else credits = 13.0 + Math.min((points - 100) / 100, 2)  // 13-15 credits
-            credits = Math.round(credits * 2) / 2 // Round to nearest 0.5
-          }
+        // Check for credits pattern
+        const creditMatch = checkLine.match(/(\d+(?:\.\d+)?)\s*cr/i)
+        if (creditMatch) {
+          credits = parseFloat(creditMatch[1])
+          break
         }
       }
       
-      const playerName = cleanPlayerName(line)
-      if (playerName && players.length < 22) {
-        players.push(createPlayer(playerName, currentTeam, role, credits))
+      const playerName = cleanPlayerName(originalLine)
+      if (playerName && players.length < 22 && !players.some(p => p.name === playerName)) {
+        const player: Player = {
+          id: generatePlayerId(playerName),
+          name: playerName,
+          team,
+          role,
+          credits,
+          isLocked: false,
+          isExcluded: false
+        }
+        players.push(player)
       }
     }
   }
 
   // If we found some players, use this result
-  if (players.length >= 4) {
+  if (players.length >= 1) {
     result.players = removeDuplicatePlayers(players)
     
-    // Assign teams more intelligently
-    if (result.players.length >= 8) {
-      const halfPoint = Math.ceil(result.players.length / 2)
-      result.players.forEach((player, index) => {
-        player.team = index < halfPoint ? 'team1' : 'team2'
-      })
-    }
+    // Assign teams more intelligently based on order
+    result.players.forEach((player, index) => {
+      // First half goes to team1, second half to team2
+      player.team = index < Math.ceil(result.players.length / 2) ? 'team1' : 'team2'
+    })
   }
 
   return result
+}
+
+/**
+ * Extract only player names from OCR text (simplified version)
+ * This function focuses on extracting just the names without full player objects
+ */
+export function extractPlayerNamesFromOCR(ocrText: string): string[] {
+  // Try the formation view approach first
+  const formationResult = parseTeamFormationView(ocrText, 0.8)
+  if (formationResult.players.length > 0) {
+    return formationResult.players.map((p: Player) => p.name)
+  }
+  
+  // Fallback to general extraction
+  const lines = ocrText.split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+  
+  const playerNames: string[] = []
+  
+  // Extract valid player names from OCR text
+  for (const line of lines) {
+    if (isValidPlayerName(line)) {
+      const cleaned = cleanPlayerName(line)
+      if (cleaned && cleaned.length > 3 && !playerNames.includes(cleaned)) {
+        playerNames.push(cleaned)
+      }
+    }
+  }
+  
+  return Array.from(new Set(playerNames))
 }

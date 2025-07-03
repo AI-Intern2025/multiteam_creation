@@ -222,11 +222,45 @@ export default function OCRProcessor({ onPlayersExtracted }: OCRProcessorProps) 
             <button
               onClick={async () => {
                 try {
-                  const response = await fetch('/sample-players.csv')
-                  const sampleData = await response.text()
-                  setManualText(sampleData)
+                  // Load sample data with correct player names
+                  const samplePlayers = [
+                    { name: 'K Brathwaite', team: 'team1', role: 'BAT', credits: 8.5 },
+                    { name: 'T Campbell', team: 'team1', role: 'WK', credits: 8.0 },
+                    { name: 'K Carty', team: 'team1', role: 'BAT', credits: 8.5 },
+                    { name: 'B King', team: 'team1', role: 'BAT', credits: 9.0 },
+                    { name: 'J Warrican', team: 'team1', role: 'BOWL', credits: 7.5 },
+                    { name: 'R Chase', team: 'team1', role: 'AR', credits: 9.5 },
+                    { name: 'S Hope', team: 'team1', role: 'BAT', credits: 10.0 },
+                    { name: 'J Greaves', team: 'team1', role: 'AR', credits: 8.0 },
+                    { name: 'A Joseph', team: 'team1', role: 'BOWL', credits: 8.5 },
+                    { name: 'J Seales', team: 'team1', role: 'BOWL', credits: 8.0 },
+                    { name: 'S Konstas', team: 'team2', role: 'BAT', credits: 8.0 },
+                    { name: 'U Khawaja', team: 'team2', role: 'BAT', credits: 9.5 },
+                    { name: 'C Green', team: 'team2', role: 'AR', credits: 9.0 },
+                    { name: 'J Inglis', team: 'team2', role: 'WK', credits: 8.5 },
+                    { name: 'T Head', team: 'team2', role: 'BAT', credits: 10.5 },
+                    { name: 'B Webster', team: 'team2', role: 'AR', credits: 8.5 },
+                    { name: 'A Carey', team: 'team2', role: 'WK', credits: 9.0 },
+                    { name: 'P Cummins', team: 'team2', role: 'BOWL', credits: 11.0 },
+                    { name: 'M Starc', team: 'team2', role: 'BOWL', credits: 10.5 },
+                    { name: 'N Lyon', team: 'team2', role: 'BOWL', credits: 9.0 },
+                    { name: 'J Hazlewood', team: 'team2', role: 'BOWL', credits: 9.5 }
+                  ] as const
+                  
+                  const players: Player[] = samplePlayers.map(p => ({
+                    id: p.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + Date.now() + Math.random(),
+                    name: p.name,
+                    team: p.team as 'team1' | 'team2',
+                    role: p.role as 'WK' | 'BAT' | 'AR' | 'BOWL',
+                    credits: p.credits,
+                    isLocked: false,
+                    isExcluded: false
+                  }))
+                  
+                  onPlayersExtracted(players)
                 } catch (error) {
                   console.error('Failed to load sample data:', error)
+                  setError('Failed to load sample data')
                 }
               }}
               className="text-green-600 hover:text-green-800 underline text-sm"
