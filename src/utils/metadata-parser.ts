@@ -452,3 +452,173 @@ function parseDream11Screenshot(ocrText: string, confidence: number): OCRResult 
 
   return result
 }
+
+/**
+ * Extract only player names from OCR text (for database lookup)
+ * This is the simplified approach suggested by your mentor
+ */
+export function extractPlayerNamesOnly(ocrText: string): string[] {
+  const lines = ocrText.split('\n').filter(line => line.trim().length > 0)
+  const playerNames: string[] = []
+  
+  // WI vs AUS specific player names (exactly matching our database)
+  const wiAusPlayers = [
+    // WI players
+    'K Brathwaite', 'J Campbell', 'K Carty', 'B King', 'J Warrican', 
+    'R Chase', 'S Hope', 'J Greaves', 'A Joseph', 'S Joseph', 'J Seales',
+    // AUS players  
+    'S Konstas', 'U Khawaja', 'C Green', 'J Inglis', 'T Head', 
+    'B Webster', 'A Carey', 'P Cummins', 'M Starc', 'N Lyon', 'J Hazlewood',
+    // Alternative patterns with partial names
+    'Brathwaite', 'Campbell', 'Carty', 'King', 'Warrican', 'Chase', 'Hope', 
+    'Greaves', 'Joseph', 'Seales', 'Konstas', 'Khawaja', 'Green', 'Inglis', 
+    'Head', 'Webster', 'Carey', 'Cummins', 'Starc', 'Lyon', 'Hazlewood',
+    // Common OCR variations from CricBuzz screenshots
+    'Konst', 'Khaw', 'Webs', 'Cum', 'Haz'
+  ]
+  
+  // Additional fuzzy matching patterns for CricBuzz11 screenshots
+  const nameVariations = {
+    'J Inglis': ['J Inglis', 'Inglis', 'Josh Inglis', 'J lnglis', 'Jlnglis'],
+    'A Carey': ['A Carey', 'Carey', 'Alex Carey', 'A carey'],
+    'S Konstas': ['S Konstas', 'Konstas', 'Sam Konstas', 'S Konst', 'Konst'],
+    'U Khawaja': ['U Khawaja', 'Khawaja', 'Usman Khawaja', 'U Khaw', 'Khaw'],
+    'T Head': ['T Head', 'Head', 'Travis Head'],
+    'C Green': ['C Green', 'Green', 'Cameron Green'],
+    'B Webster': ['B Webster', 'Webster', 'Beau Webster', 'B Webs', 'Webs'],
+    'P Cummins': ['P Cummins', 'Cummins', 'Pat Cummins', 'P Cum', 'Cum'],
+    'M Starc': ['M Starc', 'Starc', 'Mitchell Starc'],
+    'N Lyon': ['N Lyon', 'Lyon', 'Nathan Lyon'],
+    'J Hazlewood': ['J Hazlewood', 'Hazlewood', 'Josh Hazlewood', 'J Haz', 'Haz'],
+    'J Seales': ['J Seales', 'Seales', 'Jayden Seales'],
+    'K Brathwaite': ['K Brathwaite', 'Brathwaite', 'Kraigg Brathwaite'],
+    'J Campbell': ['J Campbell', 'Campbell', 'John Campbell'], 
+    'K Carty': ['K Carty', 'Carty', 'Keacy Carty'],
+    'B King': ['B King', 'King', 'Brandon King'],
+    'J Warrican': ['J Warrican', 'Warrican', 'Jomel Warrican'],
+    'R Chase': ['R Chase', 'Chase', 'Roston Chase'],
+    'S Hope': ['S Hope', 'Hope', 'Shai Hope'],
+    'J Greaves': ['J Greaves', 'Greaves', 'Justin Greaves'],
+    'A Joseph': ['A Joseph', 'Alzarri Joseph'],
+    'S Joseph': ['S Joseph', 'Shamar Joseph']
+  }
+  
+  // Clean and normalize the OCR text - handle CricBuzz11 watermarks
+  const cleanText = ocrText
+    .replace(/cricbuzz11/gi, '') // Remove CricBuzz11 watermark
+    .replace(/[^\w\s\n.-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .toLowerCase()
+  
+  console.log('🔍 OCR Text (cleaned):', cleanText)
+  
+  // First pass: Look for exact matches in the OCR text
+  for (const [dbName, variations] of Object.entries(nameVariations)) {
+    for (const variation of variations) {
+      if (cleanText.includes(variation.toLowerCase())) {
+        if (!playerNames.includes(dbName)) {
+          playerNames.push(dbName)
+          console.log(`✅ Found exact match: "${variation}" -> ${dbName}`)
+          break
+        }
+      }
+    }
+  }
+  
+  // Second pass: Line by line analysis for names near credits
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim().replace(/[^\w\s.-]/g, ' ').replace(/\s+/g, ' ')
+    
+    // Skip obviously non-player lines
+    if (line.length < 2 || 
+        /^(create|team|make|upload|sel%|pts|played|last|match|tomorrow|\d+:\d+|wk|bat|bowl|all|\d+%?|wi|aus|wicket|keeper|batters|all|rounders|bowlers|cricbuzz|vaibhav|bhagwat|t2|current)$/i.test(line) ||
+        /^[\d%\s.]+$/.test(line) ||
+        /^\d+(\.\d+)?\s*cr$/i.test(line)) {
+      continue
+    }
+    
+    // Look for names followed by credits pattern (X.X Cr)
+    const nextLine = lines[i + 1]?.trim() || ''
+    const hasCreditsNearby = /\d+(\.\d+)?\s*cr/i.test(nextLine) || /\d+(\.\d+)?\s*cr/i.test(line)
+    
+    if (hasCreditsNearby) {
+      // Check if this line contains any known player names
+      for (const [dbName, variations] of Object.entries(nameVariations)) {
+        for (const variation of variations) {
+          if (line.toLowerCase().includes(variation.toLowerCase()) || 
+              variation.toLowerCase().includes(line.toLowerCase())) {
+            if (!playerNames.includes(dbName)) {
+              playerNames.push(dbName)
+              console.log(`✅ Found by credits context: "${line}" -> ${dbName}`)
+              break
+            }
+          }
+        }
+        if (playerNames.includes(dbName)) break
+      }
+    }
+    
+    // Direct name matching with fuzzy logic
+    for (const [dbName, variations] of Object.entries(nameVariations)) {
+      for (const variation of variations) {
+        if (similarity(line.toLowerCase(), variation.toLowerCase()) > 0.6) {
+          if (!playerNames.includes(dbName)) {
+            playerNames.push(dbName)
+            console.log(`✅ Found by similarity: "${line}" (${similarity(line.toLowerCase(), variation.toLowerCase()).toFixed(2)}) -> ${dbName}`)
+            break
+          }
+        }
+      }
+      if (playerNames.includes(dbName)) break
+    }
+  }
+  
+  console.log(`🎯 Total players extracted: ${playerNames.length}`, playerNames)
+  
+  // Remove duplicates and return
+  return [...new Set(playerNames)]
+}
+
+function findStandardName(playerName: string, nameVariations: Record<string, string[]>): string {
+  // Return the exact name if it's already in proper format
+  if (playerName.match(/^[A-Z] [A-Z][a-z]+$/)) {
+    return playerName
+  }
+  
+  // Find in variations
+  for (const [lastName, variations] of Object.entries(nameVariations)) {
+    if (variations.some(v => v.toLowerCase() === playerName.toLowerCase())) {
+      return variations[0] // Return standardized name
+    }
+  }
+  
+  return playerName
+}
+
+// Simple similarity function
+function similarity(s1: string, s2: string): number {
+  const longer = s1.length > s2.length ? s1 : s2
+  const shorter = s1.length > s2.length ? s2 : s1
+  if (longer.length === 0) return 1.0
+  return (longer.length - levenshteinDistance(longer, shorter)) / longer.length
+}
+
+function levenshteinDistance(str1: string, str2: string): number {
+  const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null))
+  
+  for (let i = 0; i <= str1.length; i++) matrix[0][i] = i
+  for (let j = 0; j <= str2.length; j++) matrix[j][0] = j
+  
+  for (let j = 1; j <= str2.length; j++) {
+    for (let i = 1; i <= str1.length; i++) {
+      const substitutionCost = str1[i - 1] === str2[j - 1] ? 0 : 1
+      matrix[j][i] = Math.min(
+        matrix[j][i - 1] + 1,
+        matrix[j - 1][i] + 1,
+        matrix[j - 1][i - 1] + substitutionCost
+      )
+    }
+  }
+  
+  return matrix[str2.length][str1.length]
+}

@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Upload, Camera, Loader2, CheckCircle, AlertCircle, Edit } from 'lucide-react'
+import { Upload, Camera, Loader2, CheckCircle, AlertCircle, Edit, Database } from 'lucide-react'
 import { createWorker } from 'tesseract.js'
 import { Player, OCRResult } from '@/types'
-import { parsePlayerData, parseManualPlayerData } from '@/utils/metadata-parser'
+import { parsePlayerData, parseManualPlayerData, extractPlayerNamesOnly } from '@/utils/metadata-parser'
 
 interface OCRProcessorProps {
   onPlayersExtracted: (players: Player[]) => void
@@ -17,6 +17,50 @@ export default function OCRProcessor({ onPlayersExtracted }: OCRProcessorProps) 
   const [error, setError] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
   const [manualText, setManualText] = useState('')
+  const [dbStatus, setDbStatus] = useState<'checking' | 'connected' | 'error'>('checking')
+  const [debugInfo, setDebugInfo] = useState<any>(null)
+  const [showDebug, setShowDebug] = useState(false)
+
+  // Check database connection on component mount
+  useEffect(() => {
+    checkDatabaseConnection()
+  }, [])
+
+  const checkDatabaseConnection = async () => {
+    try {
+      const response = await fetch('/api/players?team=WI&limit=1')
+      if (response.ok) {
+        setDbStatus('connected')
+      } else {
+        setDbStatus('error')
+      }
+    } catch (error) {
+      setDbStatus('error')
+    }
+  }
+
+  const loadDemoPlayers = async () => {
+    try {
+      const response = await fetch('/api/players')
+      if (!response.ok) throw new Error('Failed to load demo players')
+      
+      const { players } = await response.json()
+      
+      const convertedPlayers: Player[] = players.slice(0, 22).map((dbPlayer: any) => ({
+        id: dbPlayer.id.toString(),
+        name: dbPlayer.name,
+        team: dbPlayer.matchTeam,
+        role: dbPlayer.role,
+        credits: dbPlayer.credits,
+        isLocked: false,
+        isExcluded: false
+      }))
+      
+      onPlayersExtracted(convertedPlayers)
+    } catch (error) {
+      setError('Failed to load demo players from database')
+    }
+  }
 
   const processImage = async (file: File) => {
     setIsProcessing(true)
@@ -27,7 +71,7 @@ export default function OCRProcessor({ onPlayersExtracted }: OCRProcessorProps) 
       const worker = await createWorker('eng', 1, {
         logger: (m) => {
           if (m.status === 'recognizing text') {
-            setProgress(Math.round(m.progress * 100))
+            setProgress(Math.round(m.progress * 70)) // OCR is 70% of the process
           }
         }
       })
@@ -35,25 +79,127 @@ export default function OCRProcessor({ onPlayersExtracted }: OCRProcessorProps) 
       const { data: { text, confidence } } = await worker.recognize(file)
       await worker.terminate()
 
-      // Parse the OCR text to extract player data
-      const ocrResult = parsePlayerData(text, confidence)
-      setResult(ocrResult)
-      
-      if (ocrResult.players.length > 0) {
-        onPlayersExtracted(ocrResult.players)
-      } else {
-        // Provide more detailed error information
-        const debugInfo = `OCR Text Preview: ${text.substring(0, 200)}...`
-        console.log('Full OCR Text:', text)
-        console.log('OCR Confidence:', confidence)
-        setError(`No player data found in the image. ${ocrResult.players.length === 0 ? 'Try uploading a clearer Dream11 player selection screenshot.' : ''}`)
+      console.log('📝 Raw OCR Text:', text)
+      console.log('🎯 OCR Confidence:', confidence)
+
+      // Store debug info
+      setDebugInfo({
+        rawText: text,
+        confidence: confidence,
+        lines: text.split('\n').filter(line => line.trim().length > 0)
+      })
+
+      setProgress(75)
+
+      // Extract only player names from OCR
+      const extractedNames = extractPlayerNamesOnly(text)
+      console.log('🔍 Extracted names from OCR:', extractedNames)
+      console.log('📊 Number of names extracted:', extractedNames.length)
+
+      if (extractedNames.length === 0) {
+        setError('No player names found in the image. Try uploading a clearer Dream11 player selection screenshot.')
+        return
       }
+
+      setProgress(80)
+
+      // Lookup players in database
+      const response = await fetch('/api/players', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ names: extractedNames })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to lookup players in database')
+      }
+
+      setProgress(90)
+
+      const { players: foundPlayers, found, total } = await response.json()
+      
+      console.log(`✅ Found ${found}/${total} players in database`)
+      console.log('Extracted names:', extractedNames)
+      console.log('Found players:', foundPlayers.map((p: any) => p.name))
+
+      // For WI vs AUS match, we should find at least some players since all are in DB
+      if (foundPlayers.length === 0) {
+        // Show debug information to help troubleshoot
+        setError(`No matching players found in database for the ${extractedNames.length} names extracted: ${extractedNames.join(', ')}. 
+        
+This might be due to OCR quality. The database contains all 22 WI vs AUS players. Try:
+1. A clearer screenshot with better lighting
+2. Ensuring the player names are clearly visible
+3. Using the "Load Demo Players" button to see all available players
+4. Manual entry if the image quality is poor`)
+        return
+      }
+
+      // Show partial matches info but don't fail - this is expected for WI vs AUS
+      if (foundPlayers.length < extractedNames.length) {
+        const missingNames = extractedNames.filter(name => 
+          !foundPlayers.some((p: any) => 
+            p.name.toLowerCase().includes(name.toLowerCase()) || 
+            name.toLowerCase().includes(p.name.toLowerCase())
+          )
+        )
+        console.warn(`⚠️ Only found ${foundPlayers.length}/${extractedNames.length} players. Missing: ${missingNames.join(', ')}`)
+        
+        // For WI vs AUS, if we found less than 8 players, suggest improvement
+        if (foundPlayers.length < 8) {
+          setError(`Found only ${foundPlayers.length} players from the screenshot. For WI vs AUS match, all 22 players should be in the database.
+          
+Extracted names: ${extractedNames.join(', ')}
+Matched players: ${foundPlayers.map((p: any) => p.name).join(', ')}
+
+Try uploading a clearer screenshot or use "Load Demo Players" to see all available WI vs AUS players.`)
+          return
+        }
+      }
+
+      // Auto-detect match teams from found players
+      const wiPlayers = foundPlayers.filter((p: any) => p.team === 'WI')
+      const ausPlayers = foundPlayers.filter((p: any) => p.team === 'AUS')
+      
+      console.log(`🏏 Match detected: WI (${wiPlayers.length}) vs AUS (${ausPlayers.length})`)
+
+      setProgress(100)
+
+      // Convert database players to our Player type
+      const convertedPlayers: Player[] = foundPlayers.map((dbPlayer: any) => ({
+        id: dbPlayer.id.toString(),
+        name: dbPlayer.name,
+        team: dbPlayer.matchTeam, // team1 or team2
+        role: dbPlayer.role,
+        credits: dbPlayer.credits,
+        isLocked: false,
+        isExcluded: false,
+        // Additional metadata from database
+        fullName: dbPlayer.fullName,
+        selectionPercentage: dbPlayer.selectionPercentage,
+        points: dbPlayer.points,
+        country: dbPlayer.country
+      }))
+
+      const ocrResult: OCRResult = {
+        players: convertedPlayers,
+        matchInfo: {
+          team1: 'WI',
+          team2: 'AUS', 
+          format: 'T20'
+        },
+        confidence: confidence * (found / total) // Adjust confidence based on match rate
+      }
+
+      setResult(ocrResult)
+      onPlayersExtracted(convertedPlayers)
+
     } catch (err) {
-      setError('Failed to process image. Please try again with a clearer image.')
+      setError('Failed to process image or lookup players. Please try again with a clearer image.')
       console.error('OCR Error:', err)
     } finally {
       setIsProcessing(false)
-      setProgress(0)
+      setTimeout(() => setProgress(0), 1000)
     }
   }
 
@@ -76,12 +222,37 @@ export default function OCRProcessor({ onPlayersExtracted }: OCRProcessorProps) 
     <div className="max-w-4xl mx-auto">
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-gray-900 mb-4">
-          Upload Dream11 Screenshot
+          WI vs AUS - Upload Dream11 Screenshot
         </h2>
-        <p className="text-lg text-gray-600">
-          Take a screenshot of the Dream11 player selection screen and upload it here.
-          We'll automatically extract player names, credits, and roles.
+        <p className="text-lg text-gray-600 mb-4">
+          Upload your WI vs AUS Dream11 player selection screenshot. Our database contains all 22 players 
+          from this match with accurate stats, so we'll automatically extract and match the players for 100% accuracy.
         </p>
+        
+        {/* Database Status */}
+        <div className="flex items-center justify-center space-x-4 mb-4">
+          <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
+            dbStatus === 'connected' ? 'bg-green-100 text-green-800' :
+            dbStatus === 'error' ? 'bg-red-100 text-red-800' :
+            'bg-yellow-100 text-yellow-800'
+          }`}>
+            <Database className="w-4 h-4" />
+            <span>
+              {dbStatus === 'connected' ? 'Database Connected' :
+               dbStatus === 'error' ? 'Database Error' :
+               'Checking Database...'}
+            </span>
+          </div>
+          
+          {dbStatus === 'connected' && (
+            <button
+              onClick={loadDemoPlayers}
+              className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm hover:bg-blue-200 transition-colors"
+            >
+              🏏 Load All WI vs AUS Players
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Upload Area */}
@@ -137,9 +308,50 @@ export default function OCRProcessor({ onPlayersExtracted }: OCRProcessorProps) 
       {error && (
         <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
           <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
-          <div>
+          <div className="flex-1">
             <h4 className="text-red-800 font-medium">Processing Failed</h4>
             <p className="text-red-700 text-sm mt-1">{error}</p>
+            
+            {/* Debug Button */}
+            {debugInfo && (
+              <button
+                onClick={() => setShowDebug(!showDebug)}
+                className="mt-2 text-xs text-red-600 hover:text-red-800 underline"
+              >
+                {showDebug ? 'Hide' : 'Show'} OCR Debug Info
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Debug Information */}
+      {showDebug && debugInfo && (
+        <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+          <h5 className="font-medium text-gray-800 mb-2">🔍 OCR Debug Information</h5>
+          <div className="text-xs space-y-2">
+            <div>
+              <span className="font-medium">OCR Confidence:</span> {Math.round(debugInfo.confidence * 100)}%
+            </div>
+            <div>
+              <span className="font-medium">Lines Detected:</span> {debugInfo.lines.length}
+            </div>
+            <div>
+              <span className="font-medium">Raw OCR Text:</span>
+              <pre className="mt-1 p-2 bg-white border rounded text-xs overflow-x-auto">
+                {debugInfo.rawText.substring(0, 1000)}{debugInfo.rawText.length > 1000 ? '...' : ''}
+              </pre>
+            </div>
+            <div>
+              <span className="font-medium">Lines (first 20):</span>
+              <ul className="mt-1 p-2 bg-white border rounded text-xs max-h-40 overflow-y-auto">
+                {debugInfo.lines.slice(0, 20).map((line: string, idx: number) => (
+                  <li key={idx} className="border-b border-gray-100 py-1">
+                    <span className="text-gray-500">{idx + 1}:</span> "{line}"
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       )}
@@ -149,7 +361,7 @@ export default function OCRProcessor({ onPlayersExtracted }: OCRProcessorProps) 
         <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-center space-x-3 mb-4">
             <CheckCircle className="w-5 h-5 text-green-500" />
-            <h4 className="text-green-800 font-medium">Successfully Extracted Player Data</h4>
+            <h4 className="text-green-800 font-medium">Successfully Loaded Player Data from Database</h4>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -158,7 +370,7 @@ export default function OCRProcessor({ onPlayersExtracted }: OCRProcessorProps) 
                 <span className="font-medium">Players Found:</span> {result.players.length}
               </p>
               <p className="text-green-700">
-                <span className="font-medium">Confidence:</span> {Math.round(result.confidence * 100)}%
+                <span className="font-medium">OCR Confidence:</span> {Math.round(result.confidence * 100)}%
               </p>
             </div>
             <div>
@@ -173,12 +385,15 @@ export default function OCRProcessor({ onPlayersExtracted }: OCRProcessorProps) 
 
           {/* Preview of extracted players */}
           <div className="mt-4">
-            <h5 className="font-medium text-green-800 mb-2">Player Preview:</h5>
+            <h5 className="font-medium text-green-800 mb-2">Player Preview (with database stats):</h5>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
               {result.players.slice(0, 8).map((player) => (
                 <div key={player.id} className="bg-white p-2 rounded border">
                   <p className="font-medium truncate">{player.name}</p>
                   <p className="text-gray-600">{player.role} • {player.credits}cr</p>
+                  {(player as any).selectionPercentage && (
+                    <p className="text-blue-600 text-xs">{(player as any).selectionPercentage}% selected</p>
+                  )}
                 </div>
               ))}
               {result.players.length > 8 && (

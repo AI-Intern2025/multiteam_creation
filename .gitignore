@@ -16,6 +16,10 @@ dist/
 .env.test.local
 .env.production.local
 
+# Database
+drizzle/
+.env.example
+
 # IDE files
 .vscode/
 .idea/
