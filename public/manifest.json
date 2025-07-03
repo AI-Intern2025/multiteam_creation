@@ -1,0 +1,21 @@
+{
+  "name": "Dream11 Multi Team Creator",
+  "short_name": "Dream11 Creator",
+  "description": "Smart fantasy team creation assistant for Dream11 power users",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1F4E79",
+  "theme_color": "#1F4E79",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
