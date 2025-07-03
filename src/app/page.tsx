@@ -3,26 +3,35 @@
 import { useState, useEffect } from 'react'
 import { Trophy } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/providers/AuthProvider'
 import MatchCard from '@/components/MatchCard'
-
-interface Match {
-  id: number
-  team1: string
-  team2: string
-  format: string
-  venue: string
-  matchDate: string
-  isActive: boolean
-}
+import LoginForm from '@/components/LoginForm'
+import Navigation from '@/components/Navigation'
+import { Match } from '@/types'
 
 export default function HomePage() {
   const [matches, setMatches] = useState<Match[]>([])
   const [loading, setLoading] = useState(true)
+  const { user, isAdmin } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    loadMatches()
-  }, [])
+    if (user) {
+      // If user is admin, redirect to admin dashboard
+      if (isAdmin()) {
+        router.push('/admin')
+        return
+      }
+      loadMatches()
+    } else {
+      setLoading(false)
+    }
+  }, [user, isAdmin, router])
+
+  // Show login form if user is not authenticated
+  if (!user && !loading) {
+    return <LoginForm />
+  }
 
   const loadMatches = async () => {
     try {
@@ -43,7 +52,11 @@ export default function HomePage() {
           format: 'T20',
           venue: 'Kensington Oval, Barbados',
           matchDate: '2025-07-04T14:30:00Z',
-          isActive: true
+          startTime: '2025-07-04T12:00:00Z',
+          endTime: '2025-07-04T14:30:00Z',
+          isActive: true,
+          isUpcoming: true,
+          status: 'scheduled'
         },
         {
           id: 2,
@@ -52,7 +65,11 @@ export default function HomePage() {
           format: 'ODI',
           venue: 'Lord\'s, London',
           matchDate: '2025-07-05T10:30:00Z',
-          isActive: true
+          startTime: '2025-07-05T08:00:00Z',
+          endTime: '2025-07-05T10:30:00Z',
+          isActive: true,
+          isUpcoming: true,
+          status: 'scheduled'
         },
         {
           id: 3,
@@ -61,7 +78,11 @@ export default function HomePage() {
           format: 'T20',
           venue: 'Gaddafi Stadium, Lahore',
           matchDate: '2025-07-06T19:00:00Z',
-          isActive: true
+          startTime: '2025-07-06T16:30:00Z',
+          endTime: '2025-07-06T19:00:00Z',
+          isActive: true,
+          isUpcoming: true,
+          status: 'scheduled'
         },
         {
           id: 4,
@@ -70,7 +91,11 @@ export default function HomePage() {
           format: 'ODI',
           venue: 'Eden Park, Auckland',
           matchDate: '2025-07-07T02:30:00Z',
-          isActive: true
+          startTime: '2025-07-07T00:00:00Z',
+          endTime: '2025-07-07T02:30:00Z',
+          isActive: true,
+          isUpcoming: true,
+          status: 'scheduled'
         },
         {
           id: 5,
@@ -79,7 +104,11 @@ export default function HomePage() {
           format: 'T20',
           venue: 'Shere Bangla National Stadium, Dhaka',
           matchDate: '2025-07-08T08:00:00Z',
-          isActive: true
+          startTime: '2025-07-08T05:30:00Z',
+          endTime: '2025-07-08T08:00:00Z',
+          isActive: true,
+          isUpcoming: true,
+          status: 'scheduled'
         }
       ]
       setMatches(mockMatches)
@@ -92,6 +121,41 @@ export default function HomePage() {
     router.push(`/select/${matchId}`)
   }
 
+  const getMatchStatus = (match: Match) => {
+    if (!match.startTime || !match.endTime) return 'scheduled'
+    
+    const now = new Date()
+    const startTime = new Date(match.startTime)
+    const endTime = new Date(match.endTime)
+    
+    if (now < startTime) return 'opens-soon'
+    if (now >= startTime && now <= endTime) return 'open'
+    if (now > endTime) return 'closed'
+    
+    return 'scheduled'
+  }
+
+  const categorizeMatches = () => {
+    const now = new Date()
+    
+    const openMatches = matches.filter(match => {
+      const status = getMatchStatus(match)
+      return match.isActive && (status === 'open' || status === 'scheduled')
+    })
+    
+    const upcomingMatches = matches.filter(match => {
+      const status = getMatchStatus(match)
+      return match.isActive && status === 'opens-soon'
+    })
+    
+    const closedMatches = matches.filter(match => {
+      const status = getMatchStatus(match)
+      return status === 'closed' || !match.isActive
+    })
+    
+    return { openMatches, upcomingMatches, closedMatches }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -100,8 +164,18 @@ export default function HomePage() {
     )
   }
 
+  // Admin users should not see this page, they get redirected to admin dashboard
+  if (isAdmin()) {
+    return null
+  }
+
+  const { openMatches, upcomingMatches, closedMatches } = categorizeMatches()
+
   return (
     <div className="min-h-screen bg-white">
+      {/* Navigation */}
+      <Navigation />
+      
       {/* Header */}
       <header className="navbar-dream11 py-8">
         <div className="max-w-7xl mx-auto px-6">
@@ -133,22 +207,68 @@ export default function HomePage() {
       {/* Main Content */}
       <main className="section-sport">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-12 text-center">
-            <h2 className="heading-secondary mb-4">LIVE MATCHES</h2>
-            <p className="text-gray-600 text-lg font-medium">Select a match to create your fantasy teams</p>
-          </div>
-
-          {/* Matches Grid */}
-          <div className="grid-sport grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {matches.map((match, index) => (
-              <div key={match.id} className="animate-scale-in" style={{ animationDelay: `${index * 0.1}s` }}>
-                <MatchCard
-                  match={match}
-                  onCreateTeams={handleCreateTeams}
-                />
+          {/* Open for Team Creation */}
+          {openMatches.length > 0 && (
+            <div className="mb-16">
+              <div className="mb-12 text-center">
+                <h2 className="heading-secondary mb-4">OPEN FOR TEAM CREATION</h2>
+                <p className="text-gray-600 text-lg font-medium">Create teams for these matches now</p>
               </div>
-            ))}
-          </div>
+              <div className="grid-sport grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                {openMatches.map((match, index) => (
+                  <div key={match.id} className="animate-scale-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                    <MatchCard
+                      match={match}
+                      onCreateTeams={handleCreateTeams}
+                      isAdmin={false}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Upcoming Matches */}
+          {upcomingMatches.length > 0 && (
+            <div className="mb-16">
+              <div className="mb-12 text-center">
+                <h2 className="heading-secondary mb-4">UPCOMING MATCHES</h2>
+                <p className="text-gray-600 text-lg font-medium">Team creation opens soon</p>
+              </div>
+              <div className="grid-sport grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                {upcomingMatches.map((match, index) => (
+                  <div key={match.id} className="animate-scale-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                    <MatchCard
+                      match={match}
+                      onCreateTeams={handleCreateTeams}
+                      isAdmin={false}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Closed Matches */}
+          {closedMatches.length > 0 && (
+            <div className="mb-16">
+              <div className="mb-12 text-center">
+                <h2 className="heading-secondary mb-4">RECENT MATCHES</h2>
+                <p className="text-gray-600 text-lg font-medium">Team creation closed</p>
+              </div>
+              <div className="grid-sport grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                {closedMatches.map((match, index) => (
+                  <div key={match.id} className="animate-scale-in opacity-60" style={{ animationDelay: `${index * 0.1}s` }}>
+                    <MatchCard
+                      match={match}
+                      onCreateTeams={handleCreateTeams}
+                      isAdmin={false}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {matches.length === 0 && (
             <div className="text-center py-16">

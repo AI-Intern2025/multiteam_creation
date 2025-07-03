@@ -6,6 +6,7 @@ interface User {
   id: string
   email: string
   name: string
+  role: 'user' | 'admin'
 }
 
 interface AuthContextType {
@@ -14,7 +15,41 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
   signUp: (email: string, password: string, name: string) => Promise<void>
+  isAdmin: () => boolean
+  getRedirectPath: () => string
 }
+
+// Dummy user data
+const DUMMY_USERS = [
+  {
+    id: '1',
+    email: 'admin@dream11.com',
+    password: 'admin123',
+    name: 'Admin User',
+    role: 'admin' as const
+  },
+  {
+    id: '2',
+    email: 'user@dream11.com',
+    password: 'user123',
+    name: 'Regular User',
+    role: 'user' as const
+  },
+  {
+    id: '3',
+    email: 'john@example.com',
+    password: 'john123',
+    name: 'John Doe',
+    role: 'user' as const
+  },
+  {
+    id: '4',
+    email: 'sarah@example.com',
+    password: 'sarah123',
+    name: 'Sarah Johnson',
+    role: 'user' as const
+  }
+]
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
@@ -34,11 +69,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     setLoading(true)
     try {
-      // Mock authentication - replace with real auth
+      // Check dummy users
+      const foundUser = DUMMY_USERS.find(u => u.email === email && u.password === password)
+      
+      if (!foundUser) {
+        throw new Error('Invalid credentials')
+      }
+      
       const mockUser: User = {
-        id: '1',
-        email,
-        name: email.split('@')[0]
+        id: foundUser.id,
+        email: foundUser.email,
+        name: foundUser.name,
+        role: foundUser.role
       }
       
       setUser(mockUser)
@@ -62,7 +104,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const newUser: User = {
         id: Date.now().toString(),
         email,
-        name
+        name,
+        role: 'user'
       }
       
       setUser(newUser)
@@ -74,8 +117,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const isAdmin = () => {
+    return user?.role === 'admin'
+  }
+
+  const getRedirectPath = () => {
+    if (user?.role === 'admin') {
+      return '/admin'
+    }
+    return '/'
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut, signUp }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut, signUp, isAdmin, getRedirectPath }}>
       {children}
     </AuthContext.Provider>
   )

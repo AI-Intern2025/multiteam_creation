@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import StrategySelector from '@/components/StrategySelector'
+import Navigation from '@/components/Navigation'
+import ProtectedRoute from '@/components/ProtectedRoute'
 import { Player, Strategy } from '@/types'
 
 export default function StrategyPage() {
@@ -43,31 +45,37 @@ export default function StrategyPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-dream11-dark text-xl font-bold">Loading strategy options...</div>
-      </div>
+      <ProtectedRoute>
+        <div className="min-h-screen bg-white flex items-center justify-center">
+          <div className="text-dream11-dark text-xl font-bold">Loading strategy options...</div>
+        </div>
+      </ProtectedRoute>
     )
   }
 
   if (players.length === 0) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-dream11-primary text-xl mb-4 font-bold">No players selected</div>
-          <button
-            onClick={() => router.push('/')}
-            className="btn-primary"
-          >
-            Back to Matches
-          </button>
+      <ProtectedRoute>
+        <div className="min-h-screen bg-white flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-dream11-primary text-xl mb-4 font-bold">No players selected</div>
+            <button
+              onClick={() => router.push('/')}
+              className="btn-primary"
+            >
+              Back to Matches
+            </button>
+          </div>
         </div>
-      </div>
+      </ProtectedRoute>
     )
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <div className="bg-white">{/* Header */}
       <header className="navbar-dream11 py-6">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between">
@@ -116,5 +124,7 @@ export default function StrategyPage() {
         />
       </main>
     </div>
+    </div>
+    </ProtectedRoute>
   )
 }

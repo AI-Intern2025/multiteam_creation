@@ -98,6 +98,21 @@ export interface MatchContext {
   generatedTeams: Team[]
 }
 
+export interface Match {
+  id: number
+  team1: string
+  team2: string
+  format: string
+  venue: string
+  matchDate: string
+  startTime: string
+  endTime: string
+  isActive: boolean
+  isUpcoming: boolean
+  status: 'scheduled' | 'live' | 'completed' | 'cancelled'
+  createdBy?: number
+}
+
 // API Response Types
 export interface ApiResponse<T> {
   success: boolean
