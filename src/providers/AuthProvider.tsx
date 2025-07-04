@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 
 interface User {
-  id: string
+  id: number
   email: string
   name: string
   role: 'user' | 'admin'
@@ -22,28 +22,28 @@ interface AuthContextType {
 // Dummy user data
 const DUMMY_USERS = [
   {
-    id: '1',
+    id: 1,
     email: 'admin@dream11.com',
     password: 'admin123',
     name: 'Admin User',
     role: 'admin' as const
   },
   {
-    id: '2',
+    id: 2,
     email: 'user@dream11.com',
     password: 'user123',
     name: 'Regular User',
     role: 'user' as const
   },
   {
-    id: '3',
+    id: 3,
     email: 'john@example.com',
     password: 'john123',
     name: 'John Doe',
     role: 'user' as const
   },
   {
-    id: '4',
+    id: 4,
     email: 'sarah@example.com',
     password: 'sarah123',
     name: 'Sarah Johnson',
@@ -102,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Mock registration - replace with real auth
       const newUser: User = {
-        id: Date.now().toString(),
+        id: Date.now(), // Using timestamp as numeric ID for now
         email,
         name,
         role: 'user'
