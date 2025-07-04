@@ -1,0 +1,9 @@
+<!-- SVG icon 512x512 for PWA -->
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="50" fill="#E51C23"/>
+  <rect x="40" y="40" width="432" height="432" rx="30" fill="#FFFFFF"/>
+  <text x="256" y="320" text-anchor="middle" font-family="Arial, sans-serif" font-size="180" font-weight="bold" fill="#E51C23">D11</text>
+  <circle cx="256" cy="380" r="20" fill="#00A652"/>
+  <rect x="100" y="120" width="312" height="8" rx="4" fill="#E51C23"/>
+  <rect x="140" y="140" width="232" height="6" rx="3" fill="#00A652"/>
+</svg>

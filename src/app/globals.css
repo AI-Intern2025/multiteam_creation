@@ -48,6 +48,14 @@
     animation: glow 2s ease-in-out infinite alternate;
   }
 
+  .animate-spin-slow {
+    animation: spin 3s linear infinite;
+  }
+
+  .shadow-dream11-glow {
+    box-shadow: 0 0 30px rgba(229, 28, 35, 0.3), 0 0 60px rgba(229, 28, 35, 0.1);
+  }
+
   .animate-slide-up {
     animation: slideUp 0.6s ease-out forwards;
   }
@@ -422,4 +430,33 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #c41e3a;
+}
+
+/* PWA and Mobile Optimizations */
+@media (display-mode: standalone) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Touch-friendly interactive elements */
+button, input, select, textarea {
+  touch-action: manipulation;
+}
+
+/* Prevent text selection on UI elements */
+.no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* High DPI display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .high-dpi-optimized {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
 }

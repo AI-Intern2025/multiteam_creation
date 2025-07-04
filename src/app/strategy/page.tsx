@@ -66,7 +66,7 @@ export default function StrategyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-dream11-primary/5">
       {/* Header */}
       <header className="navbar-dream11 py-6">
         <div className="max-w-7xl mx-auto px-6">
@@ -74,7 +74,7 @@ export default function StrategyPage() {
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => router.back()}
-                className="text-white hover:text-dream11-primary transition-colors"
+                className="text-white hover:text-dream11-primary transition-colors transform hover:scale-110"
               >
                 <ArrowLeft className="w-6 h-6" />
               </button>
@@ -94,12 +94,12 @@ export default function StrategyPage() {
       </header>
 
       {/* Selected Players Summary */}
-      <div className="bg-gray-100 border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <h3 className="heading-accent mb-4">SELECTED PLAYERS</h3>
+      <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200 shadow-lg">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <h3 className="heading-accent mb-4 text-center">SELECTED PLAYERS</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {players.map((player) => (
-              <div key={player.id} className="bg-white rounded-lg p-3 text-sm border border-gray-200">
+              <div key={player.id} className="bg-white rounded-lg p-3 text-sm border border-gray-200 shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105">
                 <div className="font-black text-dream11-dark truncate">{player.name}</div>
                 <div className="text-gray-600 text-xs font-semibold">{player.role} • {player.credits}cr</div>
               </div>
@@ -109,11 +109,13 @@ export default function StrategyPage() {
       </div>
 
       {/* Strategy Selector */}
-      <main className="max-w-7xl mx-auto px-6 py-6">
-        <StrategySelector
-          players={players}
-          onStrategySelected={handleStrategySelected}
-        />
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        <div className="bg-white/60 backdrop-blur-sm rounded-xl shadow-xl p-8 border border-gray-200">
+          <StrategySelector
+            players={players}
+            onStrategySelected={handleStrategySelected}
+          />
+        </div>
       </main>
     </div>
   )

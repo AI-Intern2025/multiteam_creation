@@ -302,7 +302,7 @@ export default function PlayerSelectionPage() {
       </div>
 
       {/* Players Grid */}
-      <main className="max-w-7xl mx-auto px-6 py-6">
+      <main className="max-w-7xl mx-auto px-6 py-6 pb-32 min-h-screen">
         {/* Match Summary */}
         <div className="card-sport mb-8">
           <h3 className="heading-accent mb-4">SQUAD OVERVIEW</h3>

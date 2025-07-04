@@ -1,12 +1,19 @@
 // Core Types for Dream11 Multi Team Creator
 
 export interface Player {
-  id: string
+  id: string | number
   name: string
-  team: 'team1' | 'team2'
+  fullName?: string
+  team: string // Allow any team name (WI, AUS, IND, ENG, etc.)
   role: 'WK' | 'BAT' | 'AR' | 'BOWL'
   credits: number
   points?: number
+  selectionPercentage?: number
+  isPlayingToday?: boolean
+  matchTeam?: string
+  country?: string
+  battingStyle?: string
+  bowlingStyle?: string
   isLocked?: boolean
   isExcluded?: boolean
 }
@@ -107,9 +114,20 @@ export interface ApiResponse<T> {
 }
 
 export interface GenerateTeamsRequest {
-  players: Player[]
+  players: BackendPlayer[] // Use backend-compatible format
   strategy: Strategy
   teamCount: number
+}
+
+export interface BackendPlayer {
+  id: string
+  name: string
+  team: string // Allow any team name for flexibility
+  role: 'WK' | 'BAT' | 'AR' | 'BOWL'
+  credits: number
+  points?: number
+  isLocked?: boolean
+  isExcluded?: boolean
 }
 
 export interface GenerateTeamsResponse {

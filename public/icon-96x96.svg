@@ -1,0 +1,7 @@
+<!-- SVG icon 96x96 for PWA -->
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="96" height="96" rx="10" fill="#E51C23"/>
+  <rect x="8" y="8" width="80" height="80" rx="8" fill="#FFFFFF"/>
+  <text x="48" y="56" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#E51C23">D11</text>
+  <circle cx="48" cy="70" r="4" fill="#00A652"/>
+</svg>

@@ -30,7 +30,7 @@ export default function TeamGenerator({ players, strategy, onTeamsGenerated }: T
       }, 300)
 
       const request: GenerateTeamsRequest = {
-        players,
+        players: players.map(p => ({ ...p, id: String(p.id) })),
         strategy,
         teamCount
       }
@@ -295,7 +295,7 @@ function generateMockTeams(players: Player[], strategy: Strategy, count: number)
   
   for (let i = 0; i < count; i++) {
     // Simple random team generation logic
-    const availablePlayers = players.filter(p => !strategy.excludedPlayers.includes(p.id))
+    const availablePlayers = players.filter(p => !strategy.excludedPlayers.includes(String(p.id)))
     const shuffled = [...availablePlayers].sort(() => Math.random() - 0.5)
     
     // Select 11 players following basic rules
@@ -305,7 +305,7 @@ function generateMockTeams(players: Player[], strategy: Strategy, count: number)
     
     // Add locked players first
     for (const lockedId of strategy.lockedPlayers) {
-      const player = players.find(p => p.id === lockedId)
+      const player = players.find(p => String(p.id) === String(lockedId))
       if (player && selectedPlayers.length < 11) {
         selectedPlayers.push(player)
         roleCounts[player.role]++
@@ -316,7 +316,7 @@ function generateMockTeams(players: Player[], strategy: Strategy, count: number)
     // Fill remaining slots
     for (const player of shuffled) {
       if (selectedPlayers.length >= 11) break
-      if (selectedPlayers.some(p => p.id === player.id)) continue
+      if (selectedPlayers.some(p => String(p.id) === String(player.id))) continue
       if (totalCredits + player.credits > strategy.creditRange.max) continue
       
       const roleConstraint = strategy.roleConstraints[player.role]
@@ -332,8 +332,8 @@ function generateMockTeams(players: Player[], strategy: Strategy, count: number)
       .filter(p => p.credits >= 8)
       .sort((a, b) => b.credits - a.credits)
     
-    const captain = highValuePlayers[0]?.id || selectedPlayers[0]?.id
-    const viceCaptain = highValuePlayers[1]?.id || selectedPlayers[1]?.id
+    const captain = String(highValuePlayers[0]?.id || selectedPlayers[0]?.id)
+    const viceCaptain = String(highValuePlayers[1]?.id || selectedPlayers[1]?.id)
     
     const team: Team = {
       id: `team-${i + 1}`,

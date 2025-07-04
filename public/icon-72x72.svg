@@ -1,0 +1,7 @@
+<!-- SVG icon 72x72 for PWA -->
+<svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="72" height="72" rx="8" fill="#E51C23"/>
+  <rect x="6" y="6" width="60" height="60" rx="6" fill="#FFFFFF"/>
+  <text x="36" y="42" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#E51C23">D11</text>
+  <circle cx="36" cy="52" r="3" fill="#00A652"/>
+</svg>
